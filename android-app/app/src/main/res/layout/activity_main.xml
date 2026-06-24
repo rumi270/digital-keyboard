@@ -12,6 +12,15 @@
         android:padding="8dp"/>
 
     <Button
+        android:id="@+id/addKey"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="16dp"
+        android:text="+ Add key"
+        android:visibility="gone"/>
+
+    <Button
         android:id="@+id/editToggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

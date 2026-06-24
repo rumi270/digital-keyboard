@@ -1,2 +1,7 @@
 - day 1 -
 did a bunch of setup connected my phone to my computer, created a git repository and made 3 visual buttons appear on my phone
+- day 2 -
+made the keys work and have actual value.
+build a grid that operate on an (x,y) values rether than a grid so it will be able to place keys where ever you like later on.
+made an edit button that makes you able to edit the label of the buttons.
+the server saves the keys as json using Gson library so it survive restart. used Gson so later down the line export/import and sticker pack will be the same mechanism.

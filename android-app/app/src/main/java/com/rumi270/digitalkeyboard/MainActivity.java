@@ -17,6 +17,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
+import android.widget.LinearLayout;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -26,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout canvas;
     private boolean editMode = false;
     private Gson gson = new Gson();
+    private Button addKeyBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,12 +52,16 @@ public class MainActivity extends AppCompatActivity {
         canvas = findViewById(R.id.canvas);
 
         Button editToggle = findViewById(R.id.editToggle);
+        addKeyBtn = findViewById(R.id.addKey);
+
         editToggle.setOnClickListener(v -> {
             editMode = !editMode;
             editToggle.setText(editMode ? "Done" : "Edit");
+            addKeyBtn.setVisibility(editMode ? android.view.View.VISIBLE : android.view.View.GONE);
             android.widget.Toast.makeText(this, editMode ? "Edit mode ON" : "Edit mode OFF", android.widget.Toast.LENGTH_SHORT).show();
         });
 
+        addKeyBtn.setOnClickListener(v -> addNewKey());
         loadKeys();
         canvas.post(this::renderKeys);
     }
@@ -128,25 +134,46 @@ public class MainActivity extends AppCompatActivity {
             canvas.addView(btn);
         }
     }
+    private void addNewKey() {
+        Key newKey = new Key(0f, 0f, 0.25f, 0.15f, "New", "A");
+        keys.add(newKey);
+        saveKeys();
+        renderKeys();
+    }
 
     private void showEditDialog(Key key) {
-        EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
-        input.setText(key.action);
-        input.setHint("What this key sends, e.g. A");
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int pad = 48;
+        layout.setPadding(pad, pad / 2, pad, 0);
+
+        EditText labelInput = new EditText(this);
+        labelInput.setInputType(InputType.TYPE_CLASS_TEXT);
+        labelInput.setText(key.label);
+        labelInput.setHint("Label shown on the key, e.g. Copy");
+        layout.addView(labelInput);
+
+        EditText actionInput = new EditText(this);
+        actionInput.setInputType(InputType.TYPE_CLASS_TEXT);
+        actionInput.setText(key.action);
+        actionInput.setHint("What it sends, e.g. A");
+        layout.addView(actionInput);
 
         new AlertDialog.Builder(this)
                 .setTitle("Edit key")
-                .setMessage("Set the label and action for this key")
-                .setView(input)
+                .setView(layout)
                 .setPositiveButton("Save", (dialog, which) -> {
-                    String newValue = input.getText().toString();
-                    key.label = newValue;
-                    key.action = newValue;
+                    key.label = labelInput.getText().toString();
+                    key.action = actionInput.getText().toString();
                     saveKeys();
                     renderKeys();
                 })
                 .setNegativeButton("Cancel", null)
+                .setNeutralButton("Delete", (dialog, which) -> {
+                    keys.remove(key);
+                    saveKeys();
+                    renderKeys();
+                })
                 .show();
     }
 }
