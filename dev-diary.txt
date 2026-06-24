@@ -4,4 +4,12 @@ did a bunch of setup connected my phone to my computer, created a git repository
 made the keys work and have actual value.
 build a grid that operate on an (x,y) values rether than a grid so it will be able to place keys where ever you like later on.
 made an edit button that makes you able to edit the label of the buttons.
-the server saves the keys as json using Gson library so it survive restart. used Gson so later down the line export/import and sticker pack will be the same mechanism.
+the server saves the keys as json using Gson library so it survive restart. used Gson so later down the line export/import and sticker pack will be the same mechanism. 
+added an add and delete buttons.
+separated label and action.
+separated track pad and screen mirroring ideas.
+added drag and resize buttons features.
+fixed bug where keyboard changed the dimension of the phone and the sizes of the buttons.
+figured out that rotating the phone recreated the app and destroyed plain variables so i prevented recreation. but made it so its still render keys.
+ 
+
