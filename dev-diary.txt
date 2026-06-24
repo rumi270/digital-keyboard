@@ -1,0 +1,2 @@
+- day 1 -
+did a bunch of setup connected my phone to my computer, created a git repository and made 3 visual buttons appear on my phone
