@@ -11,5 +11,5 @@ separated track pad and screen mirroring ideas.
 added drag and resize buttons features.
 fixed bug where keyboard changed the dimension of the phone and the sizes of the buttons.
 figured out that rotating the phone recreated the app and destroyed plain variables so i prevented recreation. but made it so its still render keys.
- 
+fixed bug where rotating the phone messed up the positions by making the app react to phone dimension changes.
 

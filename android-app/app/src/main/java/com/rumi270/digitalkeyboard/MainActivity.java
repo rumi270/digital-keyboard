@@ -18,6 +18,7 @@ import okhttp3.Request;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import android.widget.LinearLayout;
+import android.view.View;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -60,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
                 canvas.post(this::renderKeys);
             }
         });
-        
+
         Button editToggle = findViewById(R.id.editToggle);
         addKeyBtn = findViewById(R.id.addKey);
 
@@ -69,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
             editToggle.setText(editMode ? "Done" : "Edit");
             addKeyBtn.setVisibility(editMode ? android.view.View.VISIBLE : android.view.View.GONE);
             android.widget.Toast.makeText(this, editMode ? "Edit mode ON" : "Edit mode OFF", android.widget.Toast.LENGTH_SHORT).show();
+            canvas.post(this::renderKeys);
         });
 
         addKeyBtn.setOnClickListener(v -> addNewKey());
@@ -113,29 +115,30 @@ public class MainActivity extends AppCompatActivity {
         canvas.removeAllViews();
         int canvasW = canvas.getWidth();
         int canvasH = canvas.getHeight();
+        int gap = 8;
 
         for (Key key : keys) {
-            Button btn = new Button(this);
-            btn.setAllCaps(false);
-            btn.setText(key.label);
-
             int left = Math.round(key.x * canvasW);
             int top = Math.round(key.y * canvasH);
             int right = Math.round((key.x + key.width) * canvasW);
             int bottom = Math.round((key.y + key.height) * canvasH);
 
-            int gap = 8;
-            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                    (right - left) - gap,
-                    (bottom - top) - gap
-            );
-            params.leftMargin = left + gap / 2;
-            params.topMargin = top + gap / 2;
-            btn.setLayoutParams(params);
+            int keyW = (right - left) - gap;
+            int keyH = (bottom - top) - gap;
+
+            Button btn = new Button(this);
+            btn.setAllCaps(false);
+            btn.setText(key.label);
+            FrameLayout.LayoutParams btnParams = new FrameLayout.LayoutParams(keyW, keyH);
+            btnParams.leftMargin = left + gap / 2;
+            btnParams.topMargin = top + gap / 2;
+            btn.setLayoutParams(btnParams);
 
             final float[] downXY = new float[2];
             final int[] startMargins = new int[2];
+            final int[] startSize = new int[2];
             final boolean[] didDrag = {false};
+            final boolean[] isResizing = {false};
 
             btn.setOnTouchListener((v, event) -> {
                 if (!editMode) {
@@ -145,35 +148,61 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 }
 
-                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
-
                 switch (event.getAction()) {
                     case android.view.MotionEvent.ACTION_DOWN:
                         downXY[0] = event.getRawX();
                         downXY[1] = event.getRawY();
-                        startMargins[0] = lp.leftMargin;
-                        startMargins[1] = lp.topMargin;
+                        startMargins[0] = btnParams.leftMargin;
+                        startMargins[1] = btnParams.topMargin;
+                        startSize[0] = btnParams.width;
+                        startSize[1] = btnParams.height;
                         didDrag[0] = false;
+
+                        // Fixed, finger-friendly resize corner. Resize is allowed
+                        // as long as the touch lands in the bottom-right corner zone.
+                        int zoneW = Math.min(80, v.getWidth() / 2);
+                        int zoneH = Math.min(80, v.getHeight() / 2);
+                        isResizing[0] = (event.getX() > v.getWidth() - zoneW)
+                                && (event.getY() > v.getHeight() - zoneH);
                         return true;
 
                     case android.view.MotionEvent.ACTION_MOVE:
                         float dx = event.getRawX() - downXY[0];
                         float dy = event.getRawY() - downXY[1];
-                        if (Math.abs(dx) > 15 || Math.abs(dy) > 15) {
-                            didDrag[0] = true;
+                        if (Math.abs(dx) > 15 || Math.abs(dy) > 15) didDrag[0] = true;
+
+                        if (isResizing[0]) {
+                            // Work out the new size in pixels, then clamp in the SAME
+                            // fraction units we store, live, so there's no snap on release.
+                            int rawW = startSize[0] + (int) dx;
+                            int rawH = startSize[1] + (int) dy;
+
+                            float minPxW = 0.05f * canvas.getWidth();
+                            float minPxH = 0.05f * canvas.getHeight();
+                            float maxPxW = canvas.getWidth() - btnParams.leftMargin - gap;
+                            float maxPxH = canvas.getHeight() - btnParams.topMargin - gap;
+
+                            btnParams.width = (int) Math.max(minPxW, Math.min(rawW, maxPxW));
+                            btnParams.height = (int) Math.max(minPxH, Math.min(rawH, maxPxH));
+                        } else {
+                            btnParams.leftMargin = startMargins[0] + (int) dx;
+                            btnParams.topMargin = startMargins[1] + (int) dy;
                         }
-                        lp.leftMargin = startMargins[0] + (int) dx;
-                        lp.topMargin = startMargins[1] + (int) dy;
-                        v.setLayoutParams(lp);
+                        btn.setLayoutParams(btnParams);
                         return true;
 
                     case android.view.MotionEvent.ACTION_UP:
                         if (didDrag[0]) {
-                            key.x = (float) (lp.leftMargin - gap / 2) / canvas.getWidth();
-                            key.y = (float) (lp.topMargin - gap / 2) / canvas.getHeight();
+                            if (isResizing[0]) {
+                                key.width = (float) (btnParams.width + gap) / canvas.getWidth();
+                                key.height = (float) (btnParams.height + gap) / canvas.getHeight();
+                            } else {
+                                key.x = (float) (btnParams.leftMargin - gap / 2) / canvas.getWidth();
+                                key.y = (float) (btnParams.topMargin - gap / 2) / canvas.getHeight();
+                            }
                             clampKeyToBounds(key);
                             saveKeys();
-                            renderKeys();
+                            canvas.post(this::renderKeys);
                         } else {
                             showEditDialog(key);
                         }
