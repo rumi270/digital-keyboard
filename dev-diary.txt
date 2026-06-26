@@ -13,3 +13,5 @@ fixed bug where keyboard changed the dimension of the phone and the sizes of the
 figured out that rotating the phone recreated the app and destroyed plain variables so i prevented recreation. but made it so its still render keys.
 fixed bug where rotating the phone messed up the positions by making the app react to phone dimension changes.
 
+
+

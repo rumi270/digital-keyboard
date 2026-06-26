@@ -32,6 +32,10 @@ public class MainActivity extends AppCompatActivity {
     private Button profilesBtn;
     private String currentProfile = "Default";
     private java.util.Map<String, List<Key>> profiles = new java.util.HashMap<>();
+    private boolean isConnected = false;
+    private boolean isConnecting = false;
+    private android.os.Handler reconnectHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,20 +43,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url("ws://10.0.0.1:8080")
-                .build();
-        webSocket = client.newWebSocket(request, new WebSocketListener() {
-            @Override
-            public void onOpen(WebSocket ws, okhttp3.Response response) {
-                runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "Connected!", android.widget.Toast.LENGTH_SHORT).show());
-            }
-            @Override
-            public void onFailure(WebSocket ws, Throwable t, okhttp3.Response response) {
-                runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "Failed: " + t.getMessage(), android.widget.Toast.LENGTH_LONG).show());
-            }
-        });
-
+        connectWebSocket();
         canvas = findViewById(R.id.canvas);
 
         canvas.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
@@ -421,6 +412,55 @@ public class MainActivity extends AppCompatActivity {
         saveKeys();
         canvas.post(this::renderKeys);
         android.widget.Toast.makeText(this, "Now on " + currentProfile, android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    private void connectWebSocket() {
+        if (isConnecting || isConnected) return;
+        isConnecting = true;
+
+        Request request = new Request.Builder()
+                .url("ws://10.0.0.1:8080")
+                .build();
+
+        webSocket = client.newWebSocket(request, new WebSocketListener() {
+            @Override
+            public void onOpen(WebSocket ws, okhttp3.Response response) {
+                isConnected = true;
+                isConnecting = false;
+                runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "Connected!", android.widget.Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onClosed(WebSocket ws, int code, String reason) {
+                isConnected = false;
+                isConnecting = false;
+                scheduleReconnect();
+            }
+
+            @Override
+            public void onFailure(WebSocket ws, Throwable t, okhttp3.Response response) {
+                isConnected = false;
+                isConnecting = false;
+                scheduleReconnect();
+            }
+        });
+    }
+
+    private void scheduleReconnect() {
+        reconnectHandler.removeCallbacksAndMessages(null);
+        reconnectHandler.postDelayed(() -> {
+            if (!isConnected) {
+                connectWebSocket();
+            }
+        }, 3000);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!isConnected) {
+            connectWebSocket();
+        }
     }
 
 }
