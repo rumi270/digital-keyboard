@@ -1,6 +1,7 @@
 const { WebSocketServer } = require('ws');
 const { keyboard, Key } = require('@nut-tree-fork/nut-js');
 const clipboard = require('clipboardy');
+const { exec } = require('child_process');
 
 keyboard.config.autoDelayMs = 0;
 
@@ -63,6 +64,21 @@ async function runCombo(combo) {
   } catch (e) {
     console.log('Error sending combo:', combo, e.message);
   }
+}
+
+function launchApp(target) {
+  if (!target || target.trim().length === 0) {
+    console.log('No app specified to launch.');
+    return;
+  }
+  // "start" lets Windows resolve app names and paths the same way the Run dialog does
+  exec('start "" "' + target + '"', (error) => {
+    if (error) {
+      console.log('Launch failed for "' + target + '":', error.message);
+    } else {
+      console.log('Launched:', target);
+    }
+  });
 }
 
 async function pasteText(text) {
@@ -132,6 +148,8 @@ let busy = false;
 if (actionType === 'text') {
         await pasteText(action);
         console.log('Pasted text:', action);
+      } else if (actionType === 'launch') {
+        launchApp(action);
       } else {
         await runCombo(action);
       }
