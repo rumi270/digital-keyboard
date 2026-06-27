@@ -23,7 +23,12 @@ const keyMap = {
   'f6': Key.F6, 'f7': Key.F7, 'f8': Key.F8, 'f9': Key.F9, 'f10': Key.F10,
   'f11': Key.F11, 'f12': Key.F12,
   'ctrl': Key.LeftControl, 'shift': Key.LeftShift,
-  'alt': Key.LeftAlt, 'win': Key.LeftWin
+  'alt': Key.LeftAlt, 'win': Key.LeftWin,
+'playpause': Key.AudioPlay, 'pause': Key.AudioPause, 'stop': Key.AudioStop,
+  'next': Key.AudioNext, 'prev': Key.AudioPrev,
+  'volup': Key.AudioVolUp, 'voldown': Key.AudioVolDown, 'mute': Key.AudioMute,
+  'rewind': Key.AudioRewind, 'forward': Key.AudioForward,
+  'repeat': Key.AudioRepeat, 'shuffle': Key.AudioRandom,
 };
 
 const MODIFIERS = ['ctrl', 'shift', 'alt', 'win'];
