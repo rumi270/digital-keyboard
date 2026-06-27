@@ -1,5 +1,6 @@
 const { WebSocketServer } = require('ws');
 const { keyboard, Key } = require('@nut-tree-fork/nut-js');
+const clipboard = require('clipboardy');
 
 keyboard.config.autoDelayMs = 0;
 
@@ -59,13 +60,79 @@ async function runCombo(combo) {
   }
 }
 
+async function pasteText(text) {
+  let original = '';
+  let hadText = false;
+  try {
+    original = clipboard.readSync();
+    hadText = (original !== null && original !== undefined && original.length >= 0);
+  } catch (e) {
+    // Clipboard holds something non-text (image/file) or is unreadable.
+    hadText = false;
+  }
+
+  if (!hadText) {
+    // Don't risk destroying a non-text clipboard — type instead of paste.
+    try {
+      await keyboard.type(text);
+      console.log('Clipboard not text — typed instead to avoid data loss.');
+    } catch (e) {
+      console.log('Type fallback error:', e.message);
+    }
+    return;
+  }
+
+  try {
+    clipboard.writeSync(text);
+    await sleep(30);
+    await keyboard.pressKey(Key.LeftControl, Key.V);
+    await keyboard.releaseKey(Key.LeftControl, Key.V);
+    await sleep(60);
+  } catch (e) {
+    console.log('Paste error:', e.message);
+  } finally {
+    try {
+      clipboard.writeSync(original);
+    } catch (e) {}
+  }
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 wss.on('connection', (ws) => {
   console.log('Phone connected!');
 
+let busy = false;
+
   ws.on('message', async (message) => {
-    const action = message.toString();
-    console.log('Received:', action);
-    await runCombo(action);
+    const raw = message.toString();
+    console.log('Received:', raw);
+
+    const sep = raw.indexOf(':');
+    let actionType = 'keys';
+    let action = raw;
+    if (sep !== -1) {
+      actionType = raw.substring(0, sep);
+      action = raw.substring(sep + 1);
+    }
+
+    if (busy) {
+      console.log('Busy, ignoring:', raw);
+      return;
+    }
+    busy = true;
+    try {
+if (actionType === 'text') {
+        await pasteText(action);
+        console.log('Pasted text:', action);
+      } else {
+        await runCombo(action);
+      }
+    } finally {
+      busy = false;
+    }
   });
 
   ws.on('close', () => console.log('Phone disconnected.'));

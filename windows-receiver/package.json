@@ -12,6 +12,7 @@
   "type": "commonjs",
   "dependencies": {
     "@nut-tree-fork/nut-js": "^4.2.6",
+    "clipboardy": "^2.3.0",
     "ws": "^8.21.0"
   }
 }
