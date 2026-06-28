@@ -6,8 +6,31 @@ const { exec } = require('child_process');
 keyboard.config.autoDelayMs = 0;
 mouse.config.autoDelayMs = 0;
 
+const os = require('os');
+
+function getLocalIP() {
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      // IPv4, not internal (skip loopback 127.0.0.1)
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return 'IP not found';
+}
+
 const wss = new WebSocketServer({ port: 8080 });
-console.log('Receiver running on port 8080...');
+const myIP = getLocalIP();
+console.log('========================================');
+console.log('  Digital Keyboard receiver is running!');
+console.log('  ');
+console.log('  On your phone, enter this address:');
+console.log('  >>>  ' + myIP + '  <<<');
+console.log('  ');
+console.log('  (Port 8080)');
+console.log('========================================');
 
 // Map text names to nut-js Key values
 const keyMap = {
