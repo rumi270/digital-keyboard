@@ -1,9 +1,10 @@
 const { WebSocketServer } = require('ws');
-const { keyboard, Key } = require('@nut-tree-fork/nut-js');
+const { keyboard, Key, mouse, Point } = require('@nut-tree-fork/nut-js');
 const clipboard = require('clipboardy');
 const { exec } = require('child_process');
 
 keyboard.config.autoDelayMs = 0;
+mouse.config.autoDelayMs = 0;
 
 const wss = new WebSocketServer({ port: 8080 });
 console.log('Receiver running on port 8080...');
@@ -63,6 +64,45 @@ async function runCombo(combo) {
     console.log('Sent combo:', combo, '->', valid.join('+'));
   } catch (e) {
     console.log('Error sending combo:', combo, e.message);
+  }
+}
+
+async function moveMouseBy(dx, dy) {
+  try {
+    const pos = await mouse.getPosition();
+    await mouse.setPosition(new Point(Math.round(pos.x + dx), Math.round(pos.y + dy)));
+  } catch (e) {
+    console.log('Mouse move error:', e.message);
+  }
+}
+
+async function mouseClick() {
+  try {
+    await mouse.leftClick();
+    console.log('Click');
+  } catch (e) {
+    console.log('Click error:', e.message);
+  }
+}
+
+async function mouseRightClick() {
+  try {
+    await mouse.rightClick();
+    console.log('Right click');
+  } catch (e) {
+    console.log('Right click error:', e.message);
+  }
+}
+
+async function mouseScroll(amount) {
+  try {
+    if (amount > 0) {
+      await mouse.scrollDown(amount);
+    } else if (amount < 0) {
+      await mouse.scrollUp(-amount);
+    }
+  } catch (e) {
+    console.log('Scroll error:', e.message);
   }
 }
 
@@ -127,9 +167,8 @@ wss.on('connection', (ws) => {
 
 let busy = false;
 
-  ws.on('message', async (message) => {
+ws.on('message', async (message) => {
     const raw = message.toString();
-    console.log('Received:', raw);
 
     const sep = raw.indexOf(':');
     let actionType = 'keys';
@@ -139,13 +178,41 @@ let busy = false;
       action = raw.substring(sep + 1);
     }
 
+    // Mouse clicks can arrive as a picked action value too
+    if (action === 'leftclick') { await mouseClick(); return; }
+    if (action === 'rightclick') { await mouseRightClick(); return; }
+
+    // Mouse moves stream rapidly — handle them immediately, bypass the busy guard and logging
+if (actionType === 'move') {
+      const coords = action.split(',');
+      const dx = parseInt(coords[0], 10) || 0;
+      const dy = parseInt(coords[1], 10) || 0;
+      await moveMouseBy(dx, dy);
+      return;
+    }
+    if (actionType === 'click') {
+      await mouseClick();
+      return;
+    }
+    if (actionType === 'scroll') {
+      const amount = parseInt(action, 10) || 0;
+      await mouseScroll(amount);
+      return;
+    }
+    if (actionType === 'rightclick') {
+      await mouseRightClick();
+      return;
+    }
+
+    console.log('Received:', raw);
+
     if (busy) {
       console.log('Busy, ignoring:', raw);
       return;
     }
     busy = true;
     try {
-if (actionType === 'text') {
+      if (actionType === 'text') {
         await pasteText(action);
         console.log('Pasted text:', action);
       } else if (actionType === 'launch') {
